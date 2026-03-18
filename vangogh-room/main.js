@@ -51,7 +51,7 @@ const floorTexture = loadTexture('floor_texture.jpg', (texture) => {
   texture.repeat.set(4.8, 4.8);
 });
 
-const woodTexture = loadTexture('wood_texture.jpg', (texture) => {
+const woodTexture = loadTexture('wood_texture.jpeg', (texture) => {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(1.6, 1.6);
