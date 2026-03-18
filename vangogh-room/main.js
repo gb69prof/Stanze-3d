@@ -12,15 +12,74 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
+const textureLoader = new THREE.TextureLoader();
+const textureRoot = './assets/textures/';
+
+function loadTexture(path, configure, fallbackPath) {
+  const texture = textureLoader.load(
+    `${textureRoot}${path}`,
+    (loadedTexture) => {
+      loadedTexture.colorSpace = THREE.SRGBColorSpace;
+      if (configure) configure(loadedTexture);
+    },
+    undefined,
+    () => {
+      if (fallbackPath && fallbackPath !== path) {
+        texture.image = textureLoader.load(`${textureRoot}${fallbackPath}`).image;
+        texture.needsUpdate = true;
+      }
+    }
+  );
+  texture.colorSpace = THREE.SRGBColorSpace;
+  if (configure) configure(texture);
+  return texture;
+}
+
+const wallTexture = loadTexture(
+  'wall_texture.jpg',
+  (texture) => {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2.2, 1.3);
+  },
+  'floor_texture.jpg'
+);
+
+const floorTexture = loadTexture('floor_texture.jpg', (texture) => {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(4.8, 4.8);
+});
+
+const woodTexture = loadTexture('wood_texture.jpg', (texture) => {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1.6, 1.6);
+});
+
+const windowTexture = loadTexture('window_texture.jpg', (texture) => {
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+});
+
 const roomGroup = new THREE.Group();
 scene.add(roomGroup);
 
-const roomMaterial = new THREE.MeshStandardMaterial({
-  color: 0x8da8da,
-  roughness: 0.9,
-  metalness: 0.02,
+const wallMaterialBase = {
+  map: wallTexture,
+  roughness: 0.88,
+  metalness: 0.04,
   side: THREE.BackSide,
-});
+};
+
+const roomMaterial = [
+  new THREE.MeshStandardMaterial({ ...wallMaterialBase, color: 0xa9b7df }),
+  new THREE.MeshStandardMaterial({ ...wallMaterialBase, color: 0x9ab0d9 }),
+  new THREE.MeshStandardMaterial({ ...wallMaterialBase, color: 0xc5c2ab }),
+  new THREE.MeshStandardMaterial({ ...wallMaterialBase, color: 0x9f8f74 }),
+  new THREE.MeshStandardMaterial({ ...wallMaterialBase, color: 0x87a5d1 }),
+  new THREE.MeshStandardMaterial({ ...wallMaterialBase, color: 0x98a9cf }),
+];
 
 const room = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 12), roomMaterial);
 room.position.y = 3;
@@ -28,28 +87,42 @@ roomGroup.add(room);
 
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(11.4, 11.4),
-  new THREE.MeshStandardMaterial({ color: 0xa87556, roughness: 0.95, metalness: 0.01 })
+  new THREE.MeshStandardMaterial({
+    map: floorTexture,
+    color: 0xb08965,
+    roughness: 0.92,
+    metalness: 0.02,
+  })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = 0.02;
 roomGroup.add(floor);
 
-const ambient = new THREE.AmbientLight(0xf2e7be, 0.68);
+const ambient = new THREE.AmbientLight(0xf3dfb3, 0.72);
 scene.add(ambient);
 
-const keyLight = new THREE.PointLight(0xffe4a6, 1.15, 30, 2);
+const keyLight = new THREE.PointLight(0xffd79c, 1.32, 32, 2);
 keyLight.position.set(-1.2, 3.8, -2.4);
 scene.add(keyLight);
 
-const fillLight = new THREE.PointLight(0x9fbcff, 0.4, 22, 2);
+const fillLight = new THREE.PointLight(0xaec2f9, 0.35, 24, 2);
 fillLight.position.set(3.2, 2.4, 3.7);
 scene.add(fillLight);
+
+const windowLight = new THREE.PointLight(0xfff1be, 1.25, 18, 2);
+windowLight.position.set(-1.5, 3.05, -5.65);
+roomGroup.add(windowLight);
 
 // Letto (destro, grande, inclinato)
 const bed = new THREE.Group();
 const bedFrame = new THREE.Mesh(
   new THREE.BoxGeometry(3.6, 1.1, 1.95),
-  new THREE.MeshStandardMaterial({ color: 0xbe8044, roughness: 0.83 })
+  new THREE.MeshStandardMaterial({
+    map: woodTexture,
+    color: 0xc08953,
+    roughness: 0.79,
+    metalness: 0.04,
+  })
 );
 bedFrame.position.y = 0.66;
 bed.add(bedFrame);
@@ -63,7 +136,12 @@ bed.add(mattress);
 
 const headboard = new THREE.Mesh(
   new THREE.BoxGeometry(0.12, 1.55, 1.98),
-  new THREE.MeshStandardMaterial({ color: 0xaa6f37, roughness: 0.84 })
+  new THREE.MeshStandardMaterial({
+    map: woodTexture,
+    color: 0xb2743f,
+    roughness: 0.82,
+    metalness: 0.04,
+  })
 );
 headboard.position.set(1.76, 1.35, 0);
 bed.add(headboard);
@@ -75,12 +153,24 @@ roomGroup.add(bed);
 // Finestra (frontale, luminosa)
 const windowFrame = new THREE.Mesh(
   new THREE.PlaneGeometry(2, 2.05),
-  new THREE.MeshStandardMaterial({ color: 0x5d7f4f, roughness: 0.8 })
+  new THREE.MeshStandardMaterial({
+    map: windowTexture,
+    color: 0x8eb39d,
+    roughness: 0.74,
+    metalness: 0.05,
+  })
 );
 windowFrame.position.set(-1.5, 3.1, -5.96);
 roomGroup.add(windowFrame);
 
-const windowGlowMaterial = new THREE.MeshBasicMaterial({ color: 0xe1f5ad });
+const windowGlowMaterial = new THREE.MeshStandardMaterial({
+  map: windowTexture,
+  color: 0xdfe8d5,
+  emissive: 0xbdd786,
+  emissiveIntensity: 0.6,
+  roughness: 0.68,
+  metalness: 0.02,
+});
 const windowGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.62, 1.72), windowGlowMaterial);
 windowGlow.position.set(-1.5, 3.08, -5.94);
 roomGroup.add(windowGlow);
@@ -115,7 +205,12 @@ roomGroup.add(chair);
 
 // Tavolo (piccolo, leggermente sproporzionato)
 const table = new THREE.Group();
-const tableMat = new THREE.MeshStandardMaterial({ color: 0xb97a47, roughness: 0.88 });
+const tableMat = new THREE.MeshStandardMaterial({
+  map: woodTexture,
+  color: 0xb57a4d,
+  roughness: 0.81,
+  metalness: 0.04,
+});
 
 const top = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.12, 0.9), tableMat);
 top.position.y = 1.16;
@@ -264,6 +359,7 @@ window.addEventListener('resize', () => {
 
 const clock = new THREE.Clock();
 const baseCameraPos = new THREE.Vector3().copy(camera.position);
+const roomBaseBackground = new THREE.Color(0x9ca7bf);
 
 function updateMovement(delta) {
   const moveSpeed = 1.65;
@@ -304,8 +400,19 @@ function animate() {
   const breathing = 1 + Math.sin(elapsed * 0.62) * 0.01;
   roomGroup.scale.set(breathing, 1 + Math.sin(elapsed * 0.58 + 0.7) * 0.008, breathing);
 
-  keyLight.intensity = 1.15 + Math.sin(elapsed * 1.15) * 0.09;
-  windowGlow.material.color.setHSL(0.2 + Math.sin(elapsed * 0.7) * 0.01, 0.72, 0.74 + Math.sin(elapsed * 2.3) * 0.03);
+  keyLight.intensity = 1.32 + Math.sin(elapsed * 0.92) * 0.07;
+  fillLight.intensity = 0.35 + Math.sin(elapsed * 0.48 + 1.1) * 0.03;
+  ambient.intensity = 0.72 + Math.sin(elapsed * 0.35) * 0.02;
+  windowLight.intensity = 1.25 + Math.sin(elapsed * 1.95) * 0.12 + Math.sin(elapsed * 4.8) * 0.03;
+  windowGlow.material.emissiveIntensity = 0.62 + Math.sin(elapsed * 1.75) * 0.05;
+  windowGlow.material.color.setHSL(
+    0.23 + Math.sin(elapsed * 0.6) * 0.01,
+    0.42,
+    0.78 + Math.sin(elapsed * 2.2) * 0.015
+  );
+
+  const globalShift = Math.sin(elapsed * 0.22) * 0.012;
+  scene.background.copy(roomBaseBackground).offsetHSL(globalShift, 0.01 * globalShift, 0.004 * globalShift);
 
   const bob = Math.sin(elapsed * 0.8) * 0.025;
   const sway = Math.cos(elapsed * 0.55) * 0.012;
